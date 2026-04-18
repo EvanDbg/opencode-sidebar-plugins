@@ -103,7 +103,7 @@ function extractTasks(
     for (const part of parts) {
       if (part.type !== "tool") continue
       const tp = part as ToolPart
-      if (tp.tool !== "Task") continue
+      if (tp.tool !== "task") continue
 
       const info = extractTaskInfo(tp.state)
       const startedAt =
