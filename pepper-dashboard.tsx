@@ -90,6 +90,26 @@ function statusIcon(status: string): string {
 // Extract tasks from session messages
 // ---------------------------------------------------------------------------
 
+function latestUserMessageIndex(messages: ReadonlyArray<Message>): number {
+  for (let i = messages.length - 1; i >= 0; i--) {
+    if (messages[i].role === "user") {
+      return i
+    }
+  }
+  return -1
+}
+
+function latestUserMessageId(messages: ReadonlyArray<Message>): string {
+  const index = latestUserMessageIndex(messages)
+  return index >= 0 ? messages[index].id : ""
+}
+
+function latestTurnMessages(messages: ReadonlyArray<Message>): ReadonlyArray<Message> {
+  const index = latestUserMessageIndex(messages)
+  if (index >= 0) return messages.slice(index + 1)
+  return messages
+}
+
 function extractTasks(
   messages: ReadonlyArray<Message>,
   getParts: (messageId: string) => ReadonlyArray<Part>,
@@ -150,9 +170,22 @@ function TaskDashboard(props: { api: TuiPluginApi; session_id: string }) {
   const timer = setInterval(() => setNow(Date.now()), TICK_MS)
   onCleanup(() => clearInterval(timer))
 
+  const sessionMessages = createMemo(() => {
+    const sessionId = props.session_id
+    if (!sessionId) return []
+
+    return props.api.state.session.messages(sessionId) ?? []
+  })
+
+  const currentTurnKey = createMemo(() => {
+    if (!props.session_id) return ""
+    return `${props.session_id}:${latestUserMessageId(sessionMessages())}`
+  })
+
   const tasks = createMemo(() => {
-    const msgs = props.api.state.session.messages(props.session_id)
-    return extractTasks(msgs, (id) => props.api.state.part(id))
+    const currentTurn = latestTurnMessages(sessionMessages())
+
+    return extractTasks(currentTurn, (id) => props.api.state.part(id) ?? [])
   })
 
   const running = createMemo(() => tasks().filter((t) => t.status === "running"))
@@ -162,6 +195,11 @@ function TaskDashboard(props: { api: TuiPluginApi; session_id: string }) {
   const hasAny = createMemo(() => total() > 0)
 
   const toastFired = new Set<string>()
+
+  createEffect(() => {
+    currentTurnKey()
+    toastFired.clear()
+  })
 
   createEffect(() => {
     const currentNow = now()
@@ -214,21 +252,25 @@ function TaskDashboard(props: { api: TuiPluginApi; session_id: string }) {
         </text>
       </box>
 
-      <Show when={hasAny()} fallback={
-        <text fg={theme().textMuted}>  No subagent tasks yet</text>
-      }>
-        <Show when={total() <= 2 || open()}>
-          <For each={tasks()}>
-            {(task) => (
-              <TaskRow
-                task={task}
-                now={now()}
-                theme={theme()}
-              />
-            )}
-          </For>
+      <Show keyed when={currentTurnKey()}>
+        {(_turnKey) => (
+          <Show when={hasAny()} fallback={
+            <text fg={theme().textMuted}>  No subagent tasks yet</text>
+          }>
+            <Show when={total() <= 2 || open()}>
+              <For each={tasks()}>
+                {(task) => (
+                  <TaskRow
+                    task={task}
+                    now={now()}
+                    theme={theme()}
+                  />
+                )}
+              </For>
+            </Show>
+          </Show>
+        )}
         </Show>
-      </Show>
     </box>
   )
 }
@@ -470,7 +512,13 @@ const tui: TuiPlugin = async (api) => {
     order: SIDEBAR_ORDER,
     slots: {
       sidebar_content(_ctx, props) {
-        return <TaskDashboard api={api} session_id={props.session_id} />
+        return (
+          <Show keyed when={props.session_id}>
+            {(sessionId) => (
+              <TaskDashboard api={api} session_id={sessionId} />
+            )}
+          </Show>
+        )
       },
     },
   })
