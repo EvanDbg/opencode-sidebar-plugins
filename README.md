@@ -111,6 +111,192 @@ The important config is `tui.json`, not `opencode.json`:
 
 For TUI plugins, simply placing the file in `~/.config/opencode/plugins/` is not enough. The plugin must be referenced by `tui.json`.
 
+## Manual install pepper-dashboard
+
+Use this section if you do not want to run the installer script.
+
+### 1. Clone the repository
+
+```bash
+git clone https://github.com/EvanDbg/opencode-sidebar-plugins.git
+cd opencode-sidebar-plugins
+```
+
+### 2. Create the OpenCode plugin directory
+
+macOS / Linux:
+
+```bash
+mkdir -p ~/.config/opencode/plugins
+```
+
+Windows PowerShell:
+
+```powershell
+New-Item -ItemType Directory -Force -Path "$HOME\.config\opencode\plugins"
+```
+
+### 3. Copy `pepper-dashboard.tsx`
+
+macOS / Linux:
+
+```bash
+cp pepper-dashboard.tsx ~/.config/opencode/plugins/pepper-dashboard.tsx
+```
+
+Windows PowerShell:
+
+```powershell
+Copy-Item .\pepper-dashboard.tsx "$HOME\.config\opencode\plugins\pepper-dashboard.tsx" -Force
+```
+
+If your Windows OpenCode build uses `%APPDATA%\opencode`, copy to:
+
+```powershell
+Copy-Item .\pepper-dashboard.tsx "$env:APPDATA\opencode\plugins\pepper-dashboard.tsx" -Force
+```
+
+### 4. Install required dependencies
+
+Create or update `package.json` in the OpenCode config directory.
+
+macOS / Linux path:
+
+```text
+~/.config/opencode/package.json
+```
+
+Windows default path:
+
+```text
+%USERPROFILE%\.config\opencode\package.json
+```
+
+Minimal content:
+
+```json
+{
+  "dependencies": {
+    "@opencode-ai/plugin": "1.4.10",
+    "@opentui/solid": "^0.2.1",
+    "solid-js": "^1.9.12"
+  }
+}
+```
+
+Then install dependencies from that directory.
+
+macOS / Linux:
+
+```bash
+cd ~/.config/opencode
+npm install
+```
+
+Windows PowerShell:
+
+```powershell
+cd "$HOME\.config\opencode"
+npm install
+```
+
+If you use `%APPDATA%\opencode` on Windows:
+
+```powershell
+cd "$env:APPDATA\opencode"
+npm install
+```
+
+If you do not have `npm` but have `bun`, run `bun install` instead.
+
+### 5. Add the plugin to `tui.json`
+
+Create or update the TUI config file.
+
+macOS / Linux path:
+
+```text
+~/.config/opencode/tui.json
+```
+
+Windows default path:
+
+```text
+%USERPROFILE%\.config\opencode\tui.json
+```
+
+Minimal content on macOS / Linux:
+
+```json
+{
+  "$schema": "https://opencode.ai/tui.json",
+  "plugin": [
+    "/Users/YOUR_USER/.config/opencode/plugins/pepper-dashboard.tsx"
+  ]
+}
+```
+
+Replace `YOUR_USER` with your real username. The path must be absolute.
+
+Minimal content on Windows:
+
+```json
+{
+  "$schema": "https://opencode.ai/tui.json",
+  "plugin": [
+    "C:\\Users\\YOUR_USER\\.config\\opencode\\plugins\\pepper-dashboard.tsx"
+  ]
+}
+```
+
+If your Windows OpenCode config is under `%APPDATA%\opencode`, use the absolute expanded path, for example:
+
+```json
+{
+  "$schema": "https://opencode.ai/tui.json",
+  "plugin": [
+    "C:\\Users\\YOUR_USER\\AppData\\Roaming\\opencode\\plugins\\pepper-dashboard.tsx"
+  ]
+}
+```
+
+If `tui.json` already has a `plugin` array, append the `pepper-dashboard.tsx` absolute path instead of replacing existing entries.
+
+### 6. Restart OpenCode
+
+Fully quit any running OpenCode TUI, then start it again:
+
+```bash
+opencode
+```
+
+Search for `Activity Feed` or press `Ctrl+Shift+A`.
+
+## Manual uninstall pepper-dashboard
+
+1. Remove the `pepper-dashboard.tsx` entry from `tui.json`.
+2. Delete the copied plugin file.
+
+macOS / Linux:
+
+```bash
+rm ~/.config/opencode/plugins/pepper-dashboard.tsx
+```
+
+Windows PowerShell:
+
+```powershell
+Remove-Item "$HOME\.config\opencode\plugins\pepper-dashboard.tsx" -Force
+```
+
+If you use `%APPDATA%\opencode` on Windows:
+
+```powershell
+Remove-Item "$env:APPDATA\opencode\plugins\pepper-dashboard.tsx" -Force
+```
+
+Shared dependencies in `package.json` can usually remain because other TUI plugins may use them.
+
 ## Verify installation
 
 Fully quit and restart OpenCode:
